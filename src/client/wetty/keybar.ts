@@ -8,7 +8,7 @@
  not dismiss the soft keyboard; arrows repeat on long press.
  */
 import { onCtrlChange, setCtrl, toggleCtrl } from './ctrl';
-import { summonKeyboard } from './term/configuration/touch';
+import { showToast, summonKeyboard } from './term/configuration/touch';
 import type { Term } from './term';
 
 const coarsePointer = window.matchMedia('(pointer: coarse)').matches;
@@ -24,7 +24,7 @@ type Seq = string | ((term: Term) => string);
 interface KeyDef {
   label: string;
   seq?: Seq;
-  action?: 'ctrl' | 'keyboard';
+  action?: 'ctrl' | 'keyboard' | 'paste';
   repeat?: boolean;
   title?: string;
 }
@@ -48,9 +48,9 @@ const ROWS: KeyDef[][] = [
   [
     { label: '^C', seq: '\x03' },
     { label: '⇧Tab', seq: '\x1b[Z' },
-    // herdr's mobile single-column layout has no sidebar (prefix+b is a
-    // no-op there); its "switch" menu is workspace navigation.
-    { label: '切换', seq: `${PREFIX}w`, title: 'herdr: workspace navigation' },
+    { label: '粘贴', action: 'paste', title: '粘贴剪贴板' },
+    // herdr's mobile single-column layout has no sidebar; the goto picker
+    // (prefix+g) is the way to jump between workspaces/tabs/agents.
     { label: 'Goto', seq: `${PREFIX}g`, title: 'herdr: goto picker' },
     { label: '◀Tab', seq: `${PREFIX}p`, title: 'herdr: previous tab' },
     { label: 'Tab▶', seq: `${PREFIX}n`, title: 'herdr: next tab' },
@@ -108,6 +108,40 @@ function toggleSoftKeyboard(term: Term): void {
   }
 }
 
+declare global {
+  interface Window {
+    /** Injected by the Android shell (addJavascriptInterface). */
+    HerdrShell?: { readClipboard?: () => string };
+  }
+}
+
+/**
+ Paste the system clipboard into the terminal. Plain-HTTP pages cannot read
+ the clipboard through the Web API (secure context only), so the Android
+ shell exposes a native bridge; browsers on HTTPS fall back to the async
+ clipboard API. xterm's paste() handles bracketed-paste mode and CRLF.
+ @param term - the wetty terminal
+ */
+async function pasteFromClipboard(term: Term): Promise<void> {
+  let text = '';
+  try {
+    const bridge = window.HerdrShell;
+    if (bridge?.readClipboard) {
+      text = bridge.readClipboard();
+    } else if ('clipboard' in navigator) {
+      text = await navigator.clipboard.readText();
+    }
+  } catch {
+    text = '';
+  }
+  if (text === '') {
+    showToast('剪贴板为空或不可读');
+    return;
+  }
+  setCtrl(false);
+  term.paste(text);
+}
+
 function makeButton(term: Term, def: KeyDef): HTMLButtonElement {
   const btn = document.createElement('button');
   btn.type = 'button';
@@ -122,6 +156,10 @@ function makeButton(term: Term, def: KeyDef): HTMLButtonElement {
     }
     if (def.action === 'keyboard') {
       toggleSoftKeyboard(term);
+      return;
+    }
+    if (def.action === 'paste') {
+      void pasteFromClipboard(term);
       return;
     }
     if (def.seq === undefined) return;

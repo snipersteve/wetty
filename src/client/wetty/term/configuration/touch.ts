@@ -185,11 +185,12 @@ function setupTrackpadWheel(term: Term, screen: HTMLElement): void {
 }
 
 /**
- Transient bottom-center toast confirming a long-press copy.
+ Transient bottom-center toast.
+ @param text - message to flash
  */
-function showCopyToast(): void {
+export function showToast(text: string): void {
   const el = document.createElement('div');
-  el.textContent = '已复制 · Copied';
+  el.textContent = text;
   el.style.cssText =
     'position:fixed;left:50%;bottom:15%;transform:translateX(-50%);' +
     'background:rgba(0,0,0,.75);color:#fff;padding:6px 14px;' +
@@ -539,7 +540,7 @@ export function setupTouch(term: Term): void {
         const text = term.getSelection();
         if (text !== '') {
           copySelected(text);
-          showCopyToast();
+          showToast('已复制 · Copied');
         }
         return;
       }
