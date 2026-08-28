@@ -53,7 +53,7 @@ Chrome、iOS Safari/Chrome、Android Chrome)上验证过。
 | 双指长按      | 向程序发送**右键**(两指中点位置)——herdr 的右键菜单等交互手机上也能用                                                                                                          |
 
 - **底部常驻按键栏(手机)**:Termux extra-keys 风格,两行——`Esc Tab Ctrl ◀ ▲ ▼ ▶ ⌨` 与
-  `^C ⏎ ⇧Tab 切换 Goto ◀Tab Tab▶ Pane`(后五个是 herdr 的 `C-b w/g/p/n/Tab` 前缀键;手机单栏布局没有侧栏,`切换` 即其 workspace 导航菜单)。按键不抢焦点(软键盘不会被顶掉),方向键长按连发,有震动反馈;⌨
+  `^C ⇧Tab 切换 Goto ◀Tab Tab▶ +Tab ⏎`(中间五个是 herdr 的 `C-b w/g/p/n/c` 前缀键;手机单栏布局没有侧栏,`切换` 即其 workspace 导航菜单)。按键不抢焦点(软键盘不会被顶掉),方向键长按连发,有震动反馈;⌨
   唤出/收起软键盘。触屏设备上右上角的齿轮/键盘图标隐藏(按键栏常驻),桌面端不变。
 - **粘滞 Ctrl 真正可用**:安卓软键盘的 keyup 是 `Unidentified`,原实现靠 keyup 判断字母,Ctrl+C
   发不出去;现在在输入路径上直接转控制码,物理键盘走 keydown 拦截。

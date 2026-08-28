@@ -47,7 +47,6 @@ const ROWS: KeyDef[][] = [
   ],
   [
     { label: '^C', seq: '\x03' },
-    { label: '⏎', seq: '\r' },
     { label: '⇧Tab', seq: '\x1b[Z' },
     // herdr's mobile single-column layout has no sidebar (prefix+b is a
     // no-op there); its "switch" menu is workspace navigation.
@@ -55,7 +54,9 @@ const ROWS: KeyDef[][] = [
     { label: 'Goto', seq: `${PREFIX}g`, title: 'herdr: goto picker' },
     { label: '◀Tab', seq: `${PREFIX}p`, title: 'herdr: previous tab' },
     { label: 'Tab▶', seq: `${PREFIX}n`, title: 'herdr: next tab' },
-    { label: 'Pane', seq: `${PREFIX}\t`, title: 'herdr: cycle pane' },
+    { label: '+Tab', seq: `${PREFIX}c`, title: 'herdr: new tab' },
+    // Enter last, bottom-right: the thumb's home position.
+    { label: '⏎', seq: '\r' },
   ],
 ];
 
