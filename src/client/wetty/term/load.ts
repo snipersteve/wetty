@@ -1,9 +1,17 @@
 import type { Options } from './options';
 
+/** Bundled webfont first (see assets/scss/fonts.scss), then system monospace. */
+export const defaultFontFamily =
+  "'JetBrains Mono', Menlo, 'SF Mono', 'Roboto Mono', 'Droid Sans Mono', monospace";
+
 export const defaultOptions: Options = {
   // macOptionClickForcesSelection: on macOS, ⌥-drag is the only way to make
   // a local selection (and copy) while an app owns the mouse (tmux, herdr…).
-  xterm: { fontSize: 14, macOptionClickForcesSelection: true },
+  xterm: {
+    fontSize: 14,
+    fontFamily: defaultFontFamily,
+    macOptionClickForcesSelection: true,
+  },
   wettyVoid: 0,
   wettyFitTerminal: true,
 };

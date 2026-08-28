@@ -1,0 +1,19 @@
+// Bundled terminal font: JetBrains Mono (OFL, see ../fonts/JetBrainsMono-OFL.txt).
+// Same Latin glyphs on every device; CJK falls through to the system font.
+// The client awaits these faces before opening xterm so cell metrics are
+// measured against the real font (see client/wetty.ts).
+
+@mixin jbm($file, $weight, $style) {
+  @font-face {
+    font-family: 'JetBrains Mono';
+    src: url('../fonts/#{$file}.woff2') format('woff2');
+    font-weight: $weight;
+    font-style: $style;
+    font-display: swap;
+  }
+}
+
+@include jbm('JetBrainsMono-Regular', 400, normal);
+@include jbm('JetBrainsMono-Bold', 700, normal);
+@include jbm('JetBrainsMono-Italic', 400, italic);
+@include jbm('JetBrainsMono-BoldItalic', 700, italic);

@@ -9,6 +9,16 @@
   width: 100%;
   z-index: 100;
 
+  // Automatic reconnect in progress: lighter veil, spinner hint, the
+  // manual button stays as a fallback.
+  &.reconnecting {
+    background-color: rgba(0, 0, 0, 0.55);
+
+    .hint {
+      display: block;
+    }
+  }
+
   .error {
     display: flex;
     flex-direction: column;
@@ -22,6 +32,12 @@
       font-size: 1.1rem;
       font-weight: 500;
       margin-bottom: 0.5em;
+    }
+
+    .hint {
+      color: rgba(255, 255, 255, 0.55);
+      font-size: 0.8rem;
+      display: none;
     }
 
     input[type='button'] {

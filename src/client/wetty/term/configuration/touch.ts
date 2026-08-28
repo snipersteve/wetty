@@ -1,3 +1,4 @@
+import { applyCtrl } from '../../ctrl';
 import { copySelected } from './clipboard';
 import { debugLog } from './debug';
 import type { Term } from '../../term';
@@ -74,7 +75,9 @@ function setupSoftKeyboardInput(term: Term): void {
     if (!ev.composed || !keydownIgnored) return;
     keydownIgnored = false;
     if (ev.inputType === 'insertText' && ev.data !== null) {
-      term.input(ev.data, true);
+      // Sticky Ctrl from the key bar: soft keyboards never produce a real
+      // keydown, so the control-code translation happens here.
+      term.input(applyCtrl(ev.data) ?? ev.data, true);
       textarea.value = '';
     } else if (
       ev.inputType === 'insertLineBreak' ||

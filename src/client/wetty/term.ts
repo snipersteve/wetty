@@ -5,7 +5,9 @@ import { WebLinksAddon } from '@xterm/addon-web-links';
 import { WebglAddon } from '@xterm/addon-webgl';
 import { Terminal } from '@xterm/xterm';
 
+import { onCtrlChange, setCtrl, toggleCtrl } from './ctrl';
 import { terminal as termElement } from './disconnect/elements';
+import { toggleKeybar } from './keybar';
 import { configureTerm } from './term/configuration';
 import {
   copySelected,
@@ -18,10 +20,20 @@ import { loadOptions } from './term/load';
 import type { Options } from './term/options';
 import type { Socket } from 'socket.io-client';
 
+const coarsePointer = window.matchMedia('(pointer: coarse)').matches;
 const isMobile =
   /iPhone|iPad|iPod|Android|webOS|BlackBerry|Opera Mini|IEMobile/i.test(
     navigator.userAgent,
   );
+
+// FitAddon reads the same private field; no public API exposes cell size.
+interface XtermCoreAccess {
+  _core: {
+    _renderService: {
+      dimensions: { css: { cell: { width: number; height: number } } };
+    };
+  };
+}
 
 export class Term extends Terminal {
   socket: Socket;
@@ -67,8 +79,29 @@ export class Term extends Terminal {
 
   resizeTerm(): void {
     this.refresh(0, this.rows - 1);
-    if (this.shouldFitTerm) this.fitAddon.fit();
+    if (this.shouldFitTerm) this.fit();
     this.socket.emit('resize', { cols: this.cols, rows: this.rows });
+  }
+
+  /**
+   * Fit the grid to the container. FitAddon reserves 14px on the right for
+   * a scrollbar (xterm's DEFAULT_SCROLL_BAR_WIDTH); on xterm 6 that bar is
+   * an overlay shown only while scrolling, so on phones the reserve is just
+   * a permanent empty strip. Compute cols/rows from the full container
+   * there; desktop keeps FitAddon's behavior.
+   */
+  private fit(): void {
+    const parent = this.element?.parentElement;
+    // eslint-disable-next-line no-underscore-dangle -- same private field FitAddon reads
+    const { cell } = (this as unknown as XtermCoreAccess)._core._renderService
+      .dimensions.css;
+    if (!coarsePointer || !parent || cell.width === 0 || cell.height === 0) {
+      this.fitAddon.fit();
+      return;
+    }
+    const cols = Math.max(2, Math.floor(parent.clientWidth / cell.width));
+    const rows = Math.max(1, Math.floor(parent.clientHeight / cell.height));
+    if (cols !== this.cols || rows !== this.rows) this.resize(cols, rows);
   }
 
   get shouldFitTerm(): boolean {
@@ -77,160 +110,55 @@ export class Term extends Terminal {
 }
 
 const ctrlButton = document.getElementById('onscreen-ctrl');
-let ctrlFlag = false; // This indicates whether the CTRL key is pressed or not
-
-/**
- * Toggles the state of the `ctrlFlag` variable and updates the visual state
- * of the `ctrlButton` element accordingly. If `ctrlFlag` is set to `true`,
- * the `active` class is added to the `ctrlButton`; otherwise, it is removed.
- * After toggling, the terminal (`wetty_term`) is focused if it exists.
- */
-const toggleCTRL = (): void => {
-  ctrlFlag = !ctrlFlag;
-  if (ctrlButton) {
-    if (ctrlFlag) {
-      ctrlButton.classList.add('active');
-    } else {
-      ctrlButton.classList.remove('active');
-    }
-  }
-  window.wetty_term?.focus();
-};
-
-/**
- * Simulates a backspace key press by sending the backspace character
- * (ASCII code 127) to the terminal. This function is intended to be used
- * in conjunction with the `simulateCTRLAndKey` function to handle
- * keyboard shortcuts.
- *
- */
-const simulateBackspace = (): void => {
-  window.wetty_term?.input('\x7F', true);
-};
-
-/**
- * Simulates a CTRL + key press by sending the corresponding character
- * (converted from the key's ASCII code) to the terminal. This function
- * is intended to be used in conjunction with the `toggleCTRL` function
- * to handle keyboard shortcuts.
- *
- * @param key - The key that was pressed, which will be converted to
- *              its corresponding character code.
- */
-const simulateCTRLAndKey = (key: string): void => {
-  window.wetty_term?.input(
-    String.fromCharCode(key.toUpperCase().charCodeAt(0) - 64),
-    false,
-  );
-};
-
-/**
- * Handles the keydown event for the CTRL key. When the CTRL key is pressed,
- * it sets the `ctrlFlag` variable to true and updates the visual state of
- * the `ctrlButton` element. If the CTRL key is released, it sets `ctrlFlag`
- * to false and updates the visual state of the `ctrlButton` element.
- *
- * @param e - The keyboard event object.
- */
-document.addEventListener('keyup', (e) => {
-  if (ctrlFlag) {
-    // if key is a character
-    if (e.key.length === 1 && /^[a-zA-Z0-9]$/.exec(e.key)) {
-      simulateCTRLAndKey(e.key);
-      // delayed backspace is needed to remove the character added to the terminal
-      // when CTRL + key is pressed.
-      // this is a workaround because e.preventDefault() cannot be used.
-      setTimeout(() => {
-        simulateBackspace();
-      }, 100);
-    }
-    toggleCTRL();
-  }
+onCtrlChange((armed) => {
+  ctrlButton?.classList.toggle('active', armed);
 });
 
 /**
- * Simulates pressing the ESC key by sending the ESC character (ASCII code 27)
- * to the terminal. If the CTRL key is active, it toggles the CTRL state off.
- * After sending the ESC character, the terminal is focused.
+ * Arm/disarm sticky Ctrl (state lives in ctrl.ts and is shared with the
+ * phone key bar). The next character — from a physical keyboard or a soft
+ * keyboard — is sent as its control code.
  */
-const pressESC = (): void => {
-  if (ctrlFlag) {
-    toggleCTRL();
-  }
-  window.wetty_term?.input('\x1B', false);
+const toggleCTRL = (): void => {
+  toggleCtrl();
   window.wetty_term?.focus();
 };
 
 /**
- * Simulates pressing the UP arrow key by sending the UP character (ASCII code 65)
- * to the terminal. If the CTRL key is active, it toggles the CTRL state off.
- * After sending the UP character, the terminal is focused.
+ * Build a handler that types a fixed sequence into the terminal, cancelling
+ * a pending sticky Ctrl. Cursor keys honour application cursor mode.
+ * @param seq - the bytes to send, or a resolver taking the live terminal
  */
-const pressUP = (): void => {
-  if (ctrlFlag) {
-    toggleCTRL();
-  }
-  window.wetty_term?.input('\x1B[A', false);
-  window.wetty_term?.focus();
+const press = (seq: string | ((term: Term) => string)) => (): void => {
+  setCtrl(false);
+  const term = window.wetty_term;
+  if (!term) return;
+  term.input(typeof seq === 'function' ? seq(term) : seq, true);
+  term.focus();
 };
+const cursorKey =
+  (plain: string, app: string) =>
+  (term: Term): string =>
+    term.modes.applicationCursorKeysMode ? app : plain;
 
-/**
- * Simulates pressing the DOWN arrow key by sending the DOWN character (ASCII code 66)
- * to the terminal. If the CTRL key is active, it toggles the CTRL state off.
- * After sending the DOWN character, the terminal is focused.
- */
-const pressDOWN = (): void => {
-  if (ctrlFlag) {
-    toggleCTRL();
-  }
-  window.wetty_term?.input('\x1B[B', false);
-  window.wetty_term?.focus();
-};
-
-/**
- * Simulates pressing the TAB key by sending the TAB character (ASCII code 9)
- * to the terminal. If the CTRL key is active, it toggles the CTRL state off.
- * After sending the TAB character, the terminal is focused.
- */
-const pressTAB = (): void => {
-  if (ctrlFlag) {
-    toggleCTRL();
-  }
-  window.wetty_term?.input('\x09', false);
-  window.wetty_term?.focus();
-};
-
-/**
- * Simulates pressing the LEFT arrow key by sending the LEFT character (ASCII code 68)
- * to the terminal. If the CTRL key is active, it toggles the CTRL state off.
- * After sending the LEFT character, the terminal is focused.
- */
-const pressLEFT = (): void => {
-  if (ctrlFlag) {
-    toggleCTRL();
-  }
-  window.wetty_term?.input('\x1B[D', false);
-  window.wetty_term?.focus();
-};
-
-/**
- * Simulates pressing the RIGHT arrow key by sending the RIGHT character (ASCII code 67)
- * to the terminal. If the CTRL key is active, it toggles the CTRL state off.
- * After sending the RIGHT character, the terminal is focused.
- */
-const pressRIGHT = (): void => {
-  if (ctrlFlag) {
-    toggleCTRL();
-  }
-  window.wetty_term?.input('\x1B[C', false);
-  window.wetty_term?.focus();
-};
+const pressESC = press('\x1B');
+const pressTAB = press('\x09');
+const pressUP = press(cursorKey('\x1B[A', '\x1BOA'));
+const pressDOWN = press(cursorKey('\x1B[B', '\x1BOB'));
+const pressLEFT = press(cursorKey('\x1B[D', '\x1BOD'));
+const pressRIGHT = press(cursorKey('\x1B[C', '\x1BOC'));
 
 /**
  * Toggles the visibility of the onscreen buttons by adding or removing
  * the 'active' class to the element with the ID 'onscreen-buttons'.
  */
 const toggleFunctions = (): void => {
+  if (coarsePointer) {
+    // Phones have the persistent key bar instead of the pop-up grid; the
+    // header icon shows/hides it (the bar's own ⌨ key summons the IME).
+    toggleKeybar();
+    return;
+  }
   const element = document.querySelector(
     'div#functions > div.onscreen-buttons',
   );

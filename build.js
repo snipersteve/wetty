@@ -56,6 +56,9 @@ async function buildClient(watching) {
     format: 'esm',
     minify: !watching,
     sourcemap: !watching,
+    // Web fonts referenced from scss (url()) are emitted next to the CSS.
+    loader: { '.woff2': 'file' },
+    assetNames: 'fonts/[name]',
     plugins: [
       typechecker,
       sassPlugin({

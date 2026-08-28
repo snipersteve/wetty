@@ -52,6 +52,20 @@ Chrome、iOS Safari/Chrome、Android Chrome)上验证过。
 | 单指长按      | 选中手指下的单词,拖动扩选,松手自动复制进系统剪贴板(弹"已复制"提示)                                                                                                            |
 | 双指长按      | 向程序发送**右键**(两指中点位置)——herdr 的右键菜单等交互手机上也能用                                                                                                          |
 
+- **底部常驻按键栏(手机)**:Termux extra-keys 风格,两行——`Esc Tab Ctrl ◀ ▲ ▼ ▶ ⌨` 与
+  `^C ⏎ ⇧Tab 切换 Goto ◀Tab Tab▶ Pane`(后五个是 herdr 的 `C-b w/g/p/n/Tab` 前缀键;手机单栏布局没有侧栏,`切换` 即其 workspace 导航菜单)。按键不抢焦点(软键盘不会被顶掉),方向键长按连发,有震动反馈;⌨
+  唤出/收起软键盘。触屏设备上右上角的齿轮/键盘图标隐藏(按键栏常驻),桌面端不变。
+- **粘滞 Ctrl 真正可用**:安卓软键盘的 keyup 是 `Unidentified`,原实现靠 keyup 判断字母,Ctrl+C
+  发不出去;现在在输入路径上直接转控制码,物理键盘走 keydown 拦截。
+- **自动重连**:断线不再要点按钮——socket.io 快速退避重试,切回前台 / 网络恢复 / bfcache
+  返回时立即重连;重连时清理旧终端与旧监听(此前每次重连都会叠一份 `data` 监听)。herdr
+  退出(`C-b q`)会给"会话已结束"并可一键重开。
+- **视口**:`viewport-fit=cover` + 安全区内边距;安卓用 `interactive-widget=resizes-content`,软键盘弹出走原生布局收缩。
+- **自带终端字体**:打包 JetBrains Mono(woff2,四字重约 380 KB,OFL),`fontFamily`
+  默认 `'JetBrains Mono', Menlo, 'SF Mono', 'Roboto Mono', 'Droid Sans Mono', monospace`,所有设备英文观感一致,中文走系统回退。客户端等字体加载完再开
+  xterm,避免用回退字体量出的格子宽度。⚙ 设置里改 `fontFamily` 仍然有效。
+- **边缘余量跟随程序底色**:终端是整数列/行,容器右侧与底部必然有几像素余量,全屏程序(herdr/vim)自绘背景时就成了一条缝。现在每帧采样网格右缘/底缘格子的背景色(多数票),同步到容器、`body`
+  与 xterm 主题背景,缝融进程序底色,程序换主题自动跟随。
 - **iOS/Android 输入法修复**:iOS 软键盘的字符键只发 keyCode 229,xterm 6 的
   `_inputEvent` 启发式会把随后的 `insertText`
   输入事件全部丢弃——精确补上这条路径(不影响桌面按键、死键与中文组合输入,不会双发)。

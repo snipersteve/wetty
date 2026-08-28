@@ -4,6 +4,8 @@
 @use './overlay';
 @use './options';
 @use './terminal';
+@use './keybar';
+@use './fonts';
 
 html,
 body {

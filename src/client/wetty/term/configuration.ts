@@ -1,11 +1,16 @@
+import { ctrlKeyHandler } from '../ctrl';
 import { editor } from '../disconnect/elements';
+import { setupKeybar } from '../keybar';
+import { setupBackdrop } from './configuration/backdrop';
 import { copySelected, copyShortcut } from './configuration/clipboard';
 import { onInput } from './configuration/editor';
 import { setupTouch } from './configuration/touch';
 import { setupMobileViewport } from './configuration/viewport';
-import { loadOptions } from './load';
+import { defaultFontFamily, loadOptions } from './load';
 import type { Options } from './options';
 import type { Term } from '../term';
+
+let uiWired = false;
 
 export function configureTerm(term: Term): void {
   const options = loadOptions();
@@ -13,6 +18,13 @@ export function configureTerm(term: Term): void {
     term.options = options.xterm;
   } catch {
     /* Do nothing */
+  }
+  if (
+    options.xterm.fontFamily === undefined ||
+    options.xterm.fontFamily === ''
+  ) {
+    // Saved options from before the bundled font existed.
+    term.options.fontFamily = defaultFontFamily;
   }
   if (options.xterm.macOptionClickForcesSelection === undefined) {
     // Saved options from before this default existed miss the flag; without
@@ -55,35 +67,50 @@ export function configureTerm(term: Term): void {
     config?: Options;
   }
 
-  window.addEventListener('message', (e: MessageEvent<unknown>) => {
-    const data = e.data as WettyMessage | null;
-    if (data?.type === 'wetty:save' && data.config !== undefined) {
-      onInput(term, data.config);
-    } else if (data?.type === 'wetty:close') {
+  // DOM-level wiring must happen once: configureTerm runs again on every
+  // socket reconnect, and duplicated click handlers would toggle the
+  // options panel twice (i.e. not at all). Handlers resolve the live
+  // terminal through window.wetty_term.
+  if (!uiWired) {
+    uiWired = true;
+    window.addEventListener('message', (e: MessageEvent<unknown>) => {
+      const data = e.data as WettyMessage | null;
+      const live = window.wetty_term;
+      if (data?.type === 'wetty:save' && data.config !== undefined) {
+        if (live) onInput(live, data.config);
+      } else if (data?.type === 'wetty:close') {
+        optionsElem.classList.toggle('opened');
+      }
+    });
+
+    toggle.addEventListener('click', (e) => {
+      sendOptionsToEditor();
       optionsElem.classList.toggle('opened');
-    }
-  });
+      if (optionsElem.classList.contains('opened')) {
+        document
+          .querySelector('div#functions > div.onscreen-buttons')
+          ?.classList.remove('active');
+      }
+      e.preventDefault();
+    });
 
-  toggle.addEventListener('click', (e) => {
-    sendOptionsToEditor();
-    optionsElem.classList.toggle('opened');
-    if (optionsElem.classList.contains('opened')) {
-      document
-        .querySelector('div#functions > div.onscreen-buttons')
-        ?.classList.remove('active');
-    }
-    e.preventDefault();
-  });
+    document.addEventListener(
+      'mouseup',
+      () => {
+        const live = window.wetty_term;
+        if (live?.hasSelection()) copySelected(live.getSelection());
+      },
+      false,
+    );
+  }
 
-  term.attachCustomKeyEventHandler((e) => copyShortcut(term, e));
+  term.attachCustomKeyEventHandler(
+    (e) => ctrlKeyHandler(term, e) && copyShortcut(term, e),
+  );
   setupTouch(term);
   setupMobileViewport(term);
-
-  document.addEventListener(
-    'mouseup',
-    () => {
-      if (term.hasSelection()) copySelected(term.getSelection());
-    },
-    false,
-  );
+  setupKeybar(term);
+  if (term.element?.parentElement) {
+    setupBackdrop(term, term.element.parentElement);
+  }
 }

@@ -1,6 +1,12 @@
+body {
+  display: flex;
+  flex-direction: column;
+}
+
 #terminal {
   display: flex;
-  height: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
   position: relative;
   width: 100%;
 }
@@ -26,11 +32,11 @@
 }
 
 @media (pointer: coarse) {
-  // Mobile keyboard avoidance: when visualViewport shrinks, keep the terminal
-  // fitted to the visible area with extra clearance above the keyboard.
+  // Mobile keyboard avoidance: when visualViewport shrinks, keep the page
+  // (terminal + key bar) fitted to the visible area with extra clearance
+  // above the keyboard. The terminal itself is a flex item and follows.
   html[data-wetty-mobile-keyboard='1'],
-  html[data-wetty-mobile-keyboard='1'] body,
-  html[data-wetty-mobile-keyboard='1'] #terminal {
+  html[data-wetty-mobile-keyboard='1'] body {
     height: var(--wetty-mobile-viewport-height) !important;
     max-height: var(--wetty-mobile-viewport-height) !important;
     overflow: hidden;

@@ -8,7 +8,7 @@ const render = (title: string, base: string): string => `<!doctype html>
   <head>
     <meta charset="utf8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
     <meta name="theme-color" content="#1e1e1e">
     <link rel="icon" type="image/x-icon" href="${base}/client/favicon.ico">
     <link rel="manifest" href="${base}/client/manifest.json">
@@ -19,7 +19,8 @@ const render = (title: string, base: string): string => `<!doctype html>
     <div id="overlay">
       <div class="error">
         <div id="msg"></div>
-        <input type="button" onclick="location.reload();" value="reconnect" />
+        <div class="hint">切回前台或网络恢复时会自动重连</div>
+        <input type="button" onclick="window.wettyReconnect ? window.wettyReconnect() : location.reload();" value="重新连接 · reconnect" />
       </div>
     </div>
     <div id="functions">
@@ -48,6 +49,7 @@ const render = (title: string, base: string): string => `<!doctype html>
       <iframe class="editor" src="${base}/client/xterm_config/index.html"></iframe>
     </div>
     <div id="terminal"></div>
+    <div id="keybar"></div>
     ${jsFiles
       .map(
         (file) =>
