@@ -39,9 +39,17 @@ export function setupMobileViewport(term: Term): void {
     if (viewport == null) return;
 
     const layoutHeight = window.innerHeight;
+    // Only an *overlaying* keyboard (iOS: layout viewport stays tall, the
+    // visual viewport shrinks) needs the page cut down and a clearance row.
+    // Where the layout viewport itself resizes (Android Chrome with
+    // interactive-widget=resizes-content, WebView shells that pad for the
+    // IME), the flex layout already fits; cutting a row there leaves a
+    // black strip above the keyboard that outlives it.
+    const overlayKeyboard = viewport.height < layoutHeight - 80;
     const keyboardOpen =
-      viewport.height < layoutHeight - 80 ||
-      term.textarea?.dataset.kbWanted === '1';
+      overlayKeyboard ||
+      (term.textarea?.dataset.kbWanted === '1' &&
+        viewport.height < layoutHeight - 8);
 
     if (keyboardOpen) {
       const extra = Math.round(
@@ -71,6 +79,7 @@ export function setupMobileViewport(term: Term): void {
 
   visualViewport.addEventListener('resize', schedule);
   visualViewport.addEventListener('scroll', schedule);
+  window.addEventListener('resize', schedule);
   window.addEventListener('orientationchange', schedule);
   term.textarea?.addEventListener('focus', schedule);
   term.textarea?.addEventListener('blur', schedule);

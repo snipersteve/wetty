@@ -108,6 +108,9 @@ export function setupBackdrop(term: Term, container: HTMLElement): void {
     debugLog(`backdrop ${best || 'default'}`);
     container.style.backgroundColor = best;
     document.body.style.backgroundColor = best;
+    // html paints whatever lies outside body (e.g. while the page is cut
+    // down for an overlaying keyboard) — keep it in the same color.
+    document.documentElement.style.backgroundColor = best;
     // The default-bg color is what xterm paints under the grid and in the
     // viewport slack; keep it in sync so the seam disappears entirely.
     const theme = term.options.theme ?? {};
