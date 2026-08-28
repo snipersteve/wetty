@@ -1,5 +1,10 @@
 @use './variables';
 
+// Disconnect veil. No copy, no button chrome: Herdr's ram is the only thing
+// on it and it is the reconnect control. The state is told by motion —
+// breathing while an automatic reconnect runs, still (with a ↻ badge) once
+// the session has really ended. The reason text lives in the button's
+// title / aria-label for hover and screen readers.
 #overlay {
   background-color: rgba(0, 0, 0, 0.82);
   backdrop-filter: blur(8px);
@@ -9,76 +14,94 @@
   width: 100%;
   z-index: 100;
 
-  // Automatic reconnect in progress: lighter veil, spinner hint, the
-  // manual button stays as a fallback.
-  &.reconnecting {
-    background-color: rgba(0, 0, 0, 0.55);
+  .ram {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin: 0;
+    background: none;
+    border: 0;
+    cursor: pointer;
+    color: #d9dad8;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
 
-    .hint {
-      display: block;
+    > svg {
+      // viewBox is cropped to the glyph (it bleeds off the logo's
+      // bottom-right corner, so the full 512 box centres it badly).
+      width: 132px;
+      height: 121px;
+      opacity: 0.92;
+      transition:
+        opacity 0.25s ease,
+        transform 0.15s ease;
+    }
+
+    .badge {
+      position: absolute;
+      left: calc(50% + 40px);
+      top: calc(50% + 34px);
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: #3b7ddd;
+      color: variables.$white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.82);
+
+      svg {
+        width: 18px;
+        height: 18px;
+      }
+    }
+
+    &:hover > svg {
+      opacity: 1;
+    }
+
+    &:active > svg {
+      transform: scale(0.94);
     }
   }
 
-  .error {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
+  // Automatic reconnect in progress: lighter veil, the ram breathes, the
+  // badge (tap-to-reconnect affordance) is unnecessary noise.
+  &.reconnecting {
+    background-color: rgba(0, 0, 0, 0.55);
 
-    #msg {
-      color: variables.$white;
-      font-size: 1.1rem;
-      font-weight: 500;
-      margin-bottom: 0.5em;
+    .ram > svg {
+      animation: ram-breathe 1.6s ease-in-out infinite;
     }
 
-    .hint {
-      color: rgba(255, 255, 255, 0.55);
-      font-size: 0.8rem;
+    .badge {
       display: none;
     }
+  }
+}
 
-    input[type='button'] {
-      margin: 16px;
-      padding: 0.5em 1.6em;
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: variables.$white;
-      background: linear-gradient(
-        180deg,
-        rgba(60, 130, 220, 0.85) 0%,
-        rgba(40, 100, 190, 0.9) 100%
-      );
-      border: 1px solid rgba(100, 160, 240, 0.4);
-      border-radius: 8px;
-      cursor: pointer;
-      transition:
-        background 0.2s ease,
-        transform 0.1s ease,
-        box-shadow 0.2s ease;
-      box-shadow:
-        0 2px 8px rgba(40, 100, 200, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.12);
+@keyframes ram-breathe {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.96);
+  }
 
-      &:hover {
-        background: linear-gradient(
-          180deg,
-          rgba(70, 145, 235, 0.9) 0%,
-          rgba(50, 115, 210, 0.95) 100%
-        );
-        box-shadow:
-          0 4px 12px rgba(40, 100, 200, 0.4),
-          inset 0 1px 0 rgba(255, 255, 255, 0.15);
-      }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
 
-      &:active {
-        transform: translateY(1px);
-        box-shadow:
-          0 1px 4px rgba(40, 100, 200, 0.3),
-          inset 0 1px 2px rgba(0, 0, 0, 0.2);
-      }
-    }
+@media (prefers-reduced-motion: reduce) {
+  #overlay.reconnecting .ram > svg {
+    animation: none;
+    opacity: 0.6;
   }
 }

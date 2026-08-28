@@ -59,11 +59,17 @@ Chrome、iOS Safari/Chrome、Android Chrome)上验证过。
   发不出去;现在在输入路径上直接转控制码,物理键盘走 keydown 拦截。
 - **自动重连**:断线不再要点按钮——socket.io 快速退避重试,切回前台 / 网络恢复 / bfcache
   返回时立即重连;重连时清理旧终端与旧监听(此前每次重连都会叠一份 `data` 监听)。herdr
-  退出(`C-b q`)会给"会话已结束"并可一键重开。
+  退出(`C-b q`)会给"会话已结束"并可一键重开。断线遮罩上没有文字和按钮,只有 Herdr 的
+  羊头图标(herdr.dev 的 logo):自动重连时呼吸闪烁,会话结束时静止并带 ↻ 角标,点羊头即重连;
+  状态文字放在 title / aria-label 里。
 - **视口**:`viewport-fit=cover` + 安全区内边距;安卓用 `interactive-widget=resizes-content`,软键盘弹出走原生布局收缩。
 - **自带终端字体**:打包 JetBrains Mono(woff2,四字重约 380 KB,OFL),`fontFamily`
-  默认 `'JetBrains Mono', Menlo, 'SF Mono', 'Roboto Mono', 'Droid Sans Mono', monospace`,所有设备英文观感一致,中文走系统回退。客户端等字体加载完再开
-  xterm,避免用回退字体量出的格子宽度。⚙ 设置里改 `fontFamily` 仍然有效。
+  默认 `'JetBrains Mono', 'Noto Sans Symbols 2', 'Noto Sans Symbols', 'Noto Sans Math', Menlo, 'SF Mono', 'Roboto Mono', 'Droid Sans Mono', monospace`,所有设备英文观感一致,中文走系统回退。客户端等字体加载完再开
+  xterm,避免用回退字体量出的格子宽度。⚙ 设置里改 `fontFamily` 仍然有效(保存值若等于旧默认串会自动升级)。
+- **符号回退字体**:JetBrains Mono 没有 Claude Code 等 TUI 常画的 `⏵ ⏸ ⏺ ⎿ ✻ ✽ ✳ ✢ ↻ ⟳ ⧉`,安卓
+  WebView 也没有系统字体兜底,手机上是方块。打包 Noto Sans Symbols 2 / Symbols / Math 的子集
+  (技术符号、几何图形、Dingbats、箭头、数学运算符几个区块,三个文件共约 100 KB,OFL),排在
+  JetBrains Mono 之后;WebGL 渲染器有字形缓存,所以这几个面也在开 xterm 前预加载。
 - **边缘余量跟随程序底色**:终端是整数列/行,容器右侧与底部必然有几像素余量,全屏程序(herdr/vim)自绘背景时就成了一条缝。现在每帧采样网格右缘/底缘格子的背景色(多数票),同步到容器、`body`
   与 xterm 主题背景,缝融进程序底色,程序换主题自动跟随。
 - **iOS/Android 输入法修复**:iOS 软键盘的字符键只发 keyCode 229,xterm 6 的

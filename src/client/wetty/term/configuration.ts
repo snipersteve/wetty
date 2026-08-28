@@ -6,7 +6,7 @@ import { copySelected, copyShortcut } from './configuration/clipboard';
 import { onInput } from './configuration/editor';
 import { setupTouch } from './configuration/touch';
 import { setupMobileViewport } from './configuration/viewport';
-import { defaultFontFamily, loadOptions } from './load';
+import { defaultFontFamily, legacyFontFamilies, loadOptions } from './load';
 import type { Options } from './options';
 import type { Term } from '../term';
 
@@ -19,11 +19,14 @@ export function configureTerm(term: Term): void {
   } catch {
     /* Do nothing */
   }
+  const { fontFamily } = options.xterm;
   if (
-    options.xterm.fontFamily === undefined ||
-    options.xterm.fontFamily === ''
+    typeof fontFamily !== 'string' ||
+    fontFamily === '' ||
+    legacyFontFamilies.includes(fontFamily)
   ) {
-    // Saved options from before the bundled font existed.
+    // Saved options from before the bundled fonts (or the symbol
+    // fallbacks) existed.
     term.options.fontFamily = defaultFontFamily;
   }
   if (options.xterm.macOptionClickForcesSelection === undefined) {

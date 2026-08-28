@@ -11,6 +11,7 @@ import { FlowControlClient } from './wetty/flowcontrol';
 import { mobileKeyboard } from './wetty/mobile';
 import { socket } from './wetty/socket';
 import { terminal, Term } from './wetty/term';
+import { bundledFonts } from './wetty/term/load';
 
 if ('serviceWorker' in navigator) {
   const scripts = Array.from(document.getElementsByTagName('script'));
@@ -146,7 +147,11 @@ window.wettyReconnect = reconnect;
 const fontsReady: Promise<unknown> =
   'fonts' in document
     ? Promise.race([
-        document.fonts.load('14px "JetBrains Mono"'),
+        Promise.all(
+          bundledFonts.map(([family, sample]) =>
+            document.fonts.load(`14px "${family}"`, sample),
+          ),
+        ),
         new Promise((resolve) => {
           setTimeout(resolve, 2500);
         }),
