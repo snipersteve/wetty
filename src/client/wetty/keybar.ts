@@ -2,7 +2,7 @@
  Persistent on-screen key bar for phones, in the spirit of Termux's
  extra-keys row. Two rows: terminal essentials (Esc, Tab, Ctrl, arrows,
  keyboard toggle) and multiplexer shortcuts (herdr's prefix chords, ^C,
- Enter, Shift+Tab). Sticky-Ctrl state lives in ctrl.ts.
+ Enter, Shift+Tab, paste, upload). Sticky-Ctrl state lives in ctrl.ts.
 
  Buttons never take focus (pointerdown is prevented), so tapping them does
  not dismiss the soft keyboard; arrows repeat on long press.
@@ -24,7 +24,7 @@ type Seq = string | ((term: Term) => string);
 interface KeyDef {
   label: string;
   seq?: Seq;
-  action?: 'ctrl' | 'keyboard' | 'paste';
+  action?: 'ctrl' | 'keyboard' | 'paste' | 'upload';
   repeat?: boolean;
   title?: string;
 }
@@ -49,9 +49,7 @@ const ROWS: KeyDef[][] = [
     { label: '^C', seq: '\x03' },
     { label: '⇧Tab', seq: '\x1b[Z' },
     { label: '粘贴', action: 'paste', title: '粘贴剪贴板' },
-    // herdr's mobile single-column layout has no sidebar; the goto picker
-    // (prefix+g) is the way to jump between workspaces/tabs/agents.
-    { label: 'Goto', seq: `${PREFIX}g`, title: 'herdr: goto picker' },
+    { label: '上传', action: 'upload', title: '上传文件并粘贴路径' },
     { label: '◀Tab', seq: `${PREFIX}p`, title: 'herdr: previous tab' },
     { label: 'Tab▶', seq: `${PREFIX}n`, title: 'herdr: next tab' },
     { label: '+Tab', seq: `${PREFIX}c`, title: 'herdr: new tab' },
@@ -142,6 +140,65 @@ async function pasteFromClipboard(term: Term): Promise<void> {
   term.paste(text);
 }
 
+let picker: HTMLInputElement | null = null;
+
+/**
+ Pick files from the phone, POST each to the proxy's /upload (same origin,
+ cookie auth), then paste the saved Mac paths into the terminal so a CLI
+ agent can read them. Paths never contain spaces (img-HHMMSS.ext).
+ @param term - the wetty terminal
+ */
+function uploadFiles(term: Term): void {
+  if (picker === null) {
+    picker = document.createElement('input');
+    picker.type = 'file';
+    picker.multiple = true;
+    picker.style.display = 'none';
+    document.body.appendChild(picker);
+  }
+  const input = picker;
+  input.value = '';
+  input.onchange = async (): Promise<void> => {
+    const files = Array.from(input.files ?? []);
+    if (files.length === 0) return;
+    const total = String(files.length);
+    showToast(`上传中… 0/${total}`);
+    const paths: string[] = [];
+    for (const file of files) {
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        const res = await fetch('/upload', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': file.type || 'application/octet-stream',
+            'X-Filename': encodeURIComponent(file.name),
+          },
+          body: file,
+        });
+        // eslint-disable-next-line no-await-in-loop
+        const data = (await res.json()) as { path?: string };
+        if (res.ok && data.path !== undefined) paths.push(data.path);
+      } catch {
+        /* counted as failed below */
+      }
+      showToast(`上传中… ${String(paths.length)}/${total}`);
+    }
+    if (paths.length === 0) {
+      showToast('上传失败');
+      return;
+    }
+    showToast(
+      paths.length === files.length
+        ? `已上传 ${total} 个`
+        : `上传 ${String(paths.length)}/${total}，部分失败`,
+    );
+    setCtrl(false);
+    term.paste(`${paths.join(' ')} `);
+  };
+  input.click();
+}
+
 function makeButton(term: Term, def: KeyDef): HTMLButtonElement {
   const btn = document.createElement('button');
   btn.type = 'button';
@@ -160,6 +217,10 @@ function makeButton(term: Term, def: KeyDef): HTMLButtonElement {
     }
     if (def.action === 'paste') {
       void pasteFromClipboard(term);
+      return;
+    }
+    if (def.action === 'upload') {
+      uploadFiles(term);
       return;
     }
     if (def.seq === undefined) return;
