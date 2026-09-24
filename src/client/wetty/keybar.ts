@@ -145,7 +145,8 @@ let picker: HTMLInputElement | null = null;
 /**
  Pick files from the phone, POST each to the proxy's /upload (same origin,
  cookie auth), then paste the saved Mac paths into the terminal so a CLI
- agent can read them. Paths never contain spaces (img-HHMMSS.ext).
+ agent can read them. The proxy keeps original names but maps whitespace
+ to _, so the space-joined paste stays unambiguous.
  @param term - the wetty terminal
  */
 function uploadFiles(term: Term): void {
