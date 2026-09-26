@@ -4,8 +4,10 @@
  cookie auth) receives each herdr "done / blocked" event.
 
  - Secure context (HTTPS or http://localhost) with permission granted: a
-   system notification. Browsers expose the Notification API only there.
- - Otherwise (plain HTTP on a LAN IP): an in-page toast plus a short chime.
+   silent system notification plus our own chime (web notifications cannot
+   carry a custom sound, and the OS default depends on per-browser OS
+   settings). Browsers expose the Notification API only there.
+ - Otherwise (plain HTTP on a LAN IP): an in-page toast plus the chime.
  - Either way, while the page is not in front the tab title carries an
    unread count, cleared on return.
 
@@ -47,7 +49,24 @@ function armPermissionPrompt(): void {
 
 let audio: AudioContext | null = null;
 
-/** Two soft sine blips; needs a prior user gesture, which a terminal always has. */
+/**
+ Create/resume the AudioContext inside a user gesture (autoplay policy), so
+ the chime can later play from a background tab.
+ */
+function armAudio(): void {
+  const unlock = (): void => {
+    try {
+      audio ??= new AudioContext();
+      void audio.resume();
+    } catch {
+      /* no audio */
+    }
+  };
+  window.addEventListener('pointerdown', unlock, true);
+  window.addEventListener('keydown', unlock, true);
+}
+
+/** Two soft sine blips. */
 function chime(): void {
   try {
     audio ??= new AudioContext();
@@ -119,12 +138,14 @@ function onNotify(ev: NotifyEvent): void {
     const n = new Notification(ev.title, {
       body: ev.body,
       tag: `herdr-${String(ev.id)}`,
+      silent: true,
       icon: document.querySelector<HTMLLinkElement>('link[rel=icon]')?.href,
     });
     n.onclick = (): void => {
       window.focus();
       n.close();
     };
+    chime();
     return;
   }
   pageToast(ev);
@@ -134,6 +155,7 @@ function onNotify(ev: NotifyEvent): void {
 export function setupNotifications(): void {
   if (window.HerdrShell !== undefined || !('EventSource' in window)) return;
   armPermissionPrompt();
+  armAudio();
   const clear = (): void => {
     if (!inFront() || unread === 0) return;
     unread = 0;
