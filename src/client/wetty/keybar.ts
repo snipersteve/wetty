@@ -53,11 +53,11 @@ const ROWS: KeyDef[][] = [
   ],
   [
     { label: 'CtrlC', seq: '\x03', title: 'Ctrl+C' },
-    { label: '粘贴', action: 'paste', title: '粘贴剪贴板' },
-    { label: '上传', action: 'upload', title: '上传文件并粘贴路径' },
     { label: '◀Tab', seq: `${PREFIX}p`, title: 'herdr: previous tab' },
     { label: 'Tab▶', seq: `${PREFIX}n`, title: 'herdr: next tab' },
     { label: '+Tab', seq: `${PREFIX}c`, title: 'herdr: new tab' },
+    { label: '粘贴', action: 'paste', title: '粘贴剪贴板' },
+    { label: '上传', action: 'upload', title: '上传文件并粘贴路径' },
     {
       label: '语音',
       action: 'voice',
