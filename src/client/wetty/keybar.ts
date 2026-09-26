@@ -54,7 +54,7 @@ const ROWS: KeyDef[][] = [
   [
     { label: 'CtrlC', seq: '\x03', title: 'Ctrl+C' },
     {
-      label: '🎤',
+      label: '语音',
       action: 'voice',
       title: '语音输入：点一下开始，再点一下结束',
     },
