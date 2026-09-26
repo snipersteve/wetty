@@ -1,7 +1,7 @@
 /**
  Persistent on-screen key bar, in the spirit of Termux's extra-keys row.
- Phones and desktop browsers both always show it (desktop: one row, no
- soft keyboard key). Two rows: terminal essentials (Esc, Tab, Ctrl, arrows,
+ Phones always show it; desktop browsers get only a floating upload
+ button in the bottom-right corner. Two rows: terminal essentials (Esc, Tab, Ctrl, arrows,
  keyboard toggle) and multiplexer shortcuts (herdr's prefix chords, ^C,
  Enter, Shift+Tab, paste, upload). Sticky-Ctrl state lives in ctrl.ts.
 
@@ -282,23 +282,24 @@ function makeButton(term: Term, def: KeyDef): HTMLButtonElement {
 }
 
 /**
- Build the key bar. Phones and desktop get the same keys, except the soft
- keyboard toggle, which means nothing with a physical keyboard; desktop
- lays them out in a single row.
+ Build the key bar. Phones get the full two rows; desktop only a floating
+ upload button (a physical keyboard has every other key).
  @param term - the wetty terminal the keys type into
  */
 export function setupKeybar(term: Term): void {
   bar ??= document.getElementById('keybar');
   if (bar === null) return;
   bar.innerHTML = '';
-  // Desktop: one full-width row — width is plentiful, height is not.
-  const rows = coarsePointer ? ROWS : [ROWS.flat()];
+  // Desktop: the physical keyboard covers every key, so only upload is
+  // left, as a floating button in the bottom-right corner.
+  const rows = coarsePointer
+    ? ROWS
+    : [ROWS.flat().filter((def) => def.action === 'upload')];
+  bar.classList.toggle('floating', !coarsePointer);
   for (const row of rows) {
     const rowEl = document.createElement('div');
     rowEl.className = 'row';
-    row
-      .filter((def) => coarsePointer || def.action !== 'keyboard')
-      .forEach((def) => rowEl.appendChild(makeButton(term, def)));
+    row.forEach((def) => rowEl.appendChild(makeButton(term, def)));
     bar.appendChild(rowEl);
   }
   // Always on: the header icons are hidden everywhere, so a persisted
