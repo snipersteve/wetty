@@ -53,16 +53,16 @@ const ROWS: KeyDef[][] = [
   ],
   [
     { label: 'CtrlC', seq: '\x03', title: 'Ctrl+C' },
-    {
-      label: '语音',
-      action: 'voice',
-      title: '语音输入：点一下开始，再点一下结束',
-    },
     { label: '粘贴', action: 'paste', title: '粘贴剪贴板' },
     { label: '上传', action: 'upload', title: '上传文件并粘贴路径' },
     { label: '◀Tab', seq: `${PREFIX}p`, title: 'herdr: previous tab' },
     { label: 'Tab▶', seq: `${PREFIX}n`, title: 'herdr: next tab' },
     { label: '+Tab', seq: `${PREFIX}c`, title: 'herdr: new tab' },
+    {
+      label: '语音',
+      action: 'voice',
+      title: '语音输入：点一下开始，再点一下结束',
+    },
     // Enter last, bottom-right: the thumb's home position.
     { label: '⏎', seq: '\r' },
   ],
