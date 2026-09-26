@@ -129,8 +129,19 @@ const wake = (): void => {
   }
 };
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') wake();
+  if (document.visibilityState === 'visible') {
+    // Self-heal any stale glyphs in the WebGL atlas (cheap: one redraw).
+    window.wetty_term?.clearTextureAtlas();
+    wake();
+  }
 });
+// A face that loads after the first frames (e.g. a CJK fallback weight):
+// drop the atlas so glyphs rasterized with the stand-in are redrawn.
+if ('fonts' in document) {
+  document.fonts.addEventListener('loadingdone', () => {
+    window.wetty_term?.clearTextureAtlas();
+  });
+}
 window.addEventListener('online', wake);
 window.addEventListener('pageshow', wake);
 
@@ -149,8 +160,13 @@ const fontsReady: Promise<unknown> =
   'fonts' in document
     ? Promise.race([
         Promise.all(
-          bundledFonts.map(([family, sample]) =>
-            document.fonts.load(`14px "${family}"`, sample),
+          bundledFonts.flatMap(([family, sample]) =>
+            // Bold/italic too: the WebGL atlas caches whatever face a glyph
+            // was first drawn with, so a bold face arriving late left bold
+            // text drawn with fallback metrics — glyphs jumping up and down.
+            ['', 'bold ', 'italic ', 'italic bold '].map((style) =>
+              document.fonts.load(`${style}14px "${family}"`, sample),
+            ),
           ),
         ),
         new Promise((resolve) => {
