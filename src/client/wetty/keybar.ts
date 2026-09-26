@@ -1,7 +1,7 @@
 /**
  Persistent on-screen key bar, in the spirit of Termux's extra-keys row.
  Phones always show it; desktop browsers get only a floating upload
- button in the bottom-right corner. Two rows: terminal essentials (Esc, Tab, Ctrl, arrows,
+ button in the bottom-right corner. Two rows: terminal essentials (Esc, Tab, Ctrl+Enter, arrows,
  keyboard toggle) and multiplexer shortcuts (herdr's prefix chords, ^C,
  Enter, Shift+Tab, paste, upload). Sticky-Ctrl state lives in ctrl.ts.
 
@@ -39,7 +39,12 @@ const ROWS: KeyDef[][] = [
   [
     { label: 'Esc', seq: '\x1b' },
     { label: 'Tab', seq: '\t' },
-    { label: 'Ctrl', action: 'ctrl' },
+    // Ctrl+Enter as a Kitty keyboard report: herdr's client parses it and
+    // re-encodes for the pane (Claude Code enables the protocol, so it gets
+    // the same report and reads it as "send now"; legacy apps get a plain
+    // Enter). Sticky Ctrl (ctrl.ts) stays for the desktop grid and hardware
+    // keyboards; it just has no button any more.
+    { label: 'Ctrl⏎', seq: '\x1b[13;5u', title: 'Ctrl+Enter' },
     { label: '◀', seq: cursor('\x1b[D', '\x1bOD'), repeat: true },
     { label: '▲', seq: cursor('\x1b[A', '\x1bOA'), repeat: true },
     { label: '▼', seq: cursor('\x1b[B', '\x1bOB'), repeat: true },
