@@ -3,7 +3,7 @@
  Phones always show it; desktop browsers get only a floating upload
  button in the bottom-right corner. Two rows: terminal essentials (Esc, Tab, Ctrl+Enter, arrows,
  keyboard toggle) and multiplexer shortcuts (herdr's prefix chords, ^C,
- Enter, Shift+Tab, paste, upload). Sticky-Ctrl state lives in ctrl.ts.
+ Enter, voice input, paste, upload). Sticky-Ctrl state lives in ctrl.ts.
 
  Buttons never take focus (pointerdown is prevented), so tapping them does
  not dismiss the soft keyboard; arrows repeat on long press.
@@ -25,7 +25,7 @@ type Seq = string | ((term: Term) => string);
 interface KeyDef {
   label: string;
   seq?: Seq;
-  action?: 'ctrl' | 'keyboard' | 'paste' | 'upload';
+  action?: 'ctrl' | 'keyboard' | 'paste' | 'upload' | 'voice';
   repeat?: boolean;
   title?: string;
 }
@@ -53,7 +53,11 @@ const ROWS: KeyDef[][] = [
   ],
   [
     { label: 'CtrlC', seq: '\x03', title: 'Ctrl+C' },
-    { label: '⇧Tab', seq: '\x1b[Z' },
+    {
+      label: '🎤',
+      action: 'voice',
+      title: '语音输入：点一下开始，再点一下结束',
+    },
     { label: '粘贴', action: 'paste', title: '粘贴剪贴板' },
     { label: '上传', action: 'upload', title: '上传文件并粘贴路径' },
     { label: '◀Tab', seq: `${PREFIX}p`, title: 'herdr: previous tab' },
@@ -115,8 +119,65 @@ function toggleSoftKeyboard(term: Term): void {
 declare global {
   interface Window {
     /** Injected by the Android shell (addJavascriptInterface). */
-    HerdrShell?: { readClipboard?: () => string };
+    HerdrShell?: {
+      readClipboard?: () => string;
+      /** Start or stop recording; returns the new state. */
+      voiceToggle?: () => 'recording' | 'stopped' | 'denied' | 'busy';
+    };
+    /** Called by the Android shell with recording / recognition progress. */
+    wettyVoice?: (state: string, payload?: string) => void;
   }
+}
+
+// ─── voice input ─────────────────────────────────────────────────────────────
+
+let voiceButton: HTMLButtonElement | null = null;
+let voiceTerm: Term | null = null;
+
+/**
+ Entry point for the Android shell. States: recording, uploading,
+ result (payload = JSON {text, raw, polished}), error (payload = message),
+ idle.
+ @param state - progress state
+ @param payload - text or JSON depending on state
+ */
+function onVoice(state: string, payload?: string): void {
+  voiceButton?.classList.toggle('rec', state === 'recording');
+  voiceButton?.classList.toggle('busy', state === 'uploading');
+  if (state === 'recording') {
+    showToast('录音中…再点一下结束');
+  } else if (state === 'uploading') {
+    showToast('识别中…');
+  } else if (state === 'error') {
+    showToast(payload ?? '语音识别失败');
+  } else if (state === 'result' && voiceTerm !== null) {
+    let text = '';
+    try {
+      text = (JSON.parse(payload ?? '{}') as { text?: string }).text ?? '';
+    } catch {
+      text = payload ?? '';
+    }
+    if (text === '') {
+      showToast('没有识别到内容');
+      return;
+    }
+    setCtrl(false);
+    // Pasted, not sent: read it over, then hit ⏎ yourself.
+    voiceTerm.paste(text);
+  }
+}
+window.wettyVoice = onVoice;
+
+function toggleVoice(term: Term): void {
+  voiceTerm = term;
+  const bridge = window.HerdrShell;
+  if (bridge?.voiceToggle === undefined) {
+    showToast('语音输入需要安卓壳 1.11 以上');
+    return;
+  }
+  const state = bridge.voiceToggle();
+  if (state === 'denied') showToast('请允许麦克风权限后重试');
+  else if (state === 'busy') showToast('上一段还在识别中');
 }
 
 /**
@@ -236,6 +297,10 @@ function makeButton(term: Term, def: KeyDef): HTMLButtonElement {
       uploadFiles(term);
       return;
     }
+    if (def.action === 'voice') {
+      toggleVoice(term);
+      return;
+    }
     if (def.seq === undefined) return;
     const seq = typeof def.seq === 'function' ? def.seq(term) : def.seq;
     setCtrl(false);
@@ -278,6 +343,7 @@ function makeButton(term: Term, def: KeyDef): HTMLButtonElement {
     fire();
   });
 
+  if (def.action === 'voice') voiceButton = btn;
   if (def.action === 'ctrl') {
     onCtrlChange((armed) => {
       btn.classList.toggle('active', armed);

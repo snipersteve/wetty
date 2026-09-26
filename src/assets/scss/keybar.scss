@@ -51,6 +51,16 @@
       background: #3b7ddd;
       color: #fff;
     }
+
+    // Voice key: red while recording, dimmed while the proxy recognises.
+    &.rec {
+      background: #d9363e;
+      animation: keybar-pulse 1s ease-in-out infinite;
+    }
+
+    &.busy {
+      opacity: 0.5;
+    }
   }
 }
 
@@ -93,4 +103,10 @@ html[data-wetty-keybar='1'] #keybar.floating {
 #functions,
 #options {
   display: none !important;
+}
+
+@keyframes keybar-pulse {
+  50% {
+    background: #8c1d22;
+  }
 }
