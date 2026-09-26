@@ -4,6 +4,10 @@ import { setupKeybar } from '../keybar';
 import { setupBackdrop } from './configuration/backdrop';
 import { copySelected, copyShortcut } from './configuration/clipboard';
 import { onInput } from './configuration/editor';
+import {
+  imePunctuationKeyHandler,
+  setupImePunctuation,
+} from './configuration/ime';
 import { setupTouch } from './configuration/touch';
 import { setupMobileViewport } from './configuration/viewport';
 import { defaultFontFamily, legacyFontFamilies, loadOptions } from './load';
@@ -108,8 +112,12 @@ export function configureTerm(term: Term): void {
   }
 
   term.attachCustomKeyEventHandler(
-    (e) => ctrlKeyHandler(term, e) && copyShortcut(term, e),
+    (e) =>
+      ctrlKeyHandler(term, e) &&
+      copyShortcut(term, e) &&
+      imePunctuationKeyHandler(e),
   );
+  setupImePunctuation(term);
   setupTouch(term);
   setupMobileViewport(term);
   setupKeybar(term);

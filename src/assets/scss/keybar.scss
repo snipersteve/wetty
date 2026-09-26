@@ -2,7 +2,7 @@
 // Persistent two-row bar under the terminal (see client/wetty/keybar.ts).
 // Part of the body's flex column so the terminal shrinks around it, and on
 // phones the soft keyboard pushes both up together. Desktop shows the same
-// bar, toggled by the header keyboard icon.
+// keys in one row.
 
 #keybar {
   display: none;
@@ -77,11 +77,10 @@ html[data-wetty-keybar='1'] #keybar {
   }
 }
 
-@media (pointer: coarse) {
-  // The header icons are desktop-only: the bar covers the keyboard toggle,
-  // and the options panel is not phone-friendly. Phones use the bar.
-  #functions,
-  #options {
-    display: none !important;
-  }
+// The header icons (key bar toggle, xterm options panel) are unused: the
+// bar is always on and the defaults are what we want. Hidden, not removed —
+// configureTerm still wires the options iframe.
+#functions,
+#options {
+  display: none !important;
 }

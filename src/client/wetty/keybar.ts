@@ -1,7 +1,7 @@
 /**
  Persistent on-screen key bar, in the spirit of Termux's extra-keys row.
- Phones always show it; desktop browsers show the same bar (minus the soft
- keyboard key), toggled by the header keyboard icon and remembered. Two rows: terminal essentials (Esc, Tab, Ctrl, arrows,
+ Phones and desktop browsers both always show it (desktop: one row, no
+ soft keyboard key). Two rows: terminal essentials (Esc, Tab, Ctrl, arrows,
  keyboard toggle) and multiplexer shortcuts (herdr's prefix chords, ^C,
  Enter, Shift+Tab, paste, upload). Sticky-Ctrl state lives in ctrl.ts.
 
@@ -281,14 +281,6 @@ function makeButton(term: Term, def: KeyDef): HTMLButtonElement {
   return btn;
 }
 
-function storedVisibility(): boolean {
-  try {
-    return localStorage.getItem(STORAGE_KEY) !== '0';
-  } catch {
-    return true;
-  }
-}
-
 /**
  Build the key bar. Phones and desktop get the same keys, except the soft
  keyboard toggle, which means nothing with a physical keyboard; desktop
@@ -309,7 +301,7 @@ export function setupKeybar(term: Term): void {
       .forEach((def) => rowEl.appendChild(makeButton(term, def)));
     bar.appendChild(rowEl);
   }
-  // Phones: always on — the header toggle is hidden there, so a persisted
-  // hidden state would have no way back. Desktop: as last left (default on).
-  applyVisibility(coarsePointer || storedVisibility());
+  // Always on: the header icons are hidden everywhere, so a persisted
+  // hidden state would have no way back.
+  applyVisibility(true);
 }
