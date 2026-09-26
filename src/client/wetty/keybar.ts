@@ -52,7 +52,7 @@ const ROWS: KeyDef[][] = [
     { label: '⌨', action: 'keyboard', title: '软键盘' },
   ],
   [
-    { label: '^C', seq: '\x03' },
+    { label: 'CtrlC', seq: '\x03', title: 'Ctrl+C' },
     { label: '⇧Tab', seq: '\x1b[Z' },
     { label: '粘贴', action: 'paste', title: '粘贴剪贴板' },
     { label: '上传', action: 'upload', title: '上传文件并粘贴路径' },
