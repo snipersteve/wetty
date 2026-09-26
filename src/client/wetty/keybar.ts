@@ -39,7 +39,6 @@ const ROWS: KeyDef[][] = [
   [
     { label: 'Esc', seq: '\x1b' },
     { label: 'Tab', seq: '\t' },
-    { label: '⇧Tab', seq: '\x1b[Z' },
     // Ctrl+Enter as a Kitty keyboard report: herdr's client parses it and
     // re-encodes for the pane (Claude Code enables the protocol, so it gets
     // the same report and reads it as "send now"; legacy apps get a plain
@@ -64,7 +63,6 @@ const ROWS: KeyDef[][] = [
     { label: '◀Tab', seq: `${PREFIX}p`, title: 'herdr: previous tab' },
     { label: 'Tab▶', seq: `${PREFIX}n`, title: 'herdr: next tab' },
     { label: '+Tab', seq: `${PREFIX}c`, title: 'herdr: new tab' },
-    { label: '侧栏', seq: `${PREFIX}b`, title: 'herdr: toggle sidebar' },
     // Enter last, bottom-right: the thumb's home position.
     { label: '⏎', seq: '\r' },
   ],
