@@ -291,14 +291,17 @@ function storedVisibility(): boolean {
 
 /**
  Build the key bar. Phones and desktop get the same keys, except the soft
- keyboard toggle, which means nothing with a physical keyboard.
+ keyboard toggle, which means nothing with a physical keyboard; desktop
+ lays them out in a single row.
  @param term - the wetty terminal the keys type into
  */
 export function setupKeybar(term: Term): void {
   bar ??= document.getElementById('keybar');
   if (bar === null) return;
   bar.innerHTML = '';
-  for (const row of ROWS) {
+  // Desktop: one full-width row — width is plentiful, height is not.
+  const rows = coarsePointer ? ROWS : [ROWS.flat()];
+  for (const row of rows) {
     const rowEl = document.createElement('div');
     rowEl.className = 'row';
     row
