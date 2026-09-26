@@ -1,6 +1,7 @@
 /**
- Persistent on-screen key bar for phones, in the spirit of Termux's
- extra-keys row. Two rows: terminal essentials (Esc, Tab, Ctrl, arrows,
+ Persistent on-screen key bar, in the spirit of Termux's extra-keys row.
+ Phones always show it; desktop browsers show the same bar (minus the soft
+ keyboard key), toggled by the header keyboard icon and remembered. Two rows: terminal essentials (Esc, Tab, Ctrl, arrows,
  keyboard toggle) and multiplexer shortcuts (herdr's prefix chords, ^C,
  Enter, Shift+Tab, paste, upload). Sticky-Ctrl state lives in ctrl.ts.
 
@@ -133,7 +134,13 @@ async function pasteFromClipboard(term: Term): Promise<void> {
     text = '';
   }
   if (text === '') {
-    showToast('剪贴板为空或不可读');
+    // Desktop on plain HTTP: no clipboard API outside a secure context, but
+    // the physical keyboard's paste goes through xterm untouched.
+    showToast(
+      coarsePointer || window.isSecureContext
+        ? '剪贴板为空或不可读'
+        : '请用 ⌘V / Ctrl+Shift+V 粘贴',
+    );
     return;
   }
   setCtrl(false);
@@ -274,23 +281,32 @@ function makeButton(term: Term, def: KeyDef): HTMLButtonElement {
   return btn;
 }
 
+function storedVisibility(): boolean {
+  try {
+    return localStorage.getItem(STORAGE_KEY) !== '0';
+  } catch {
+    return true;
+  }
+}
+
 /**
- Build the key bar on finger-first devices. Desktop keeps the classic
- pop-up grid (see term.ts).
+ Build the key bar. Phones and desktop get the same keys, except the soft
+ keyboard toggle, which means nothing with a physical keyboard.
  @param term - the wetty terminal the keys type into
  */
 export function setupKeybar(term: Term): void {
-  if (!coarsePointer) return;
   bar ??= document.getElementById('keybar');
   if (bar === null) return;
   bar.innerHTML = '';
   for (const row of ROWS) {
     const rowEl = document.createElement('div');
     rowEl.className = 'row';
-    for (const def of row) rowEl.appendChild(makeButton(term, def));
+    row
+      .filter((def) => coarsePointer || def.action !== 'keyboard')
+      .forEach((def) => rowEl.appendChild(makeButton(term, def)));
     bar.appendChild(rowEl);
   }
-  // Always on: the header toggle is hidden on phones, so a persisted
-  // hidden state would have no way back.
-  applyVisibility(true);
+  // Phones: always on — the header toggle is hidden there, so a persisted
+  // hidden state would have no way back. Desktop: as last left (default on).
+  applyVisibility(coarsePointer || storedVisibility());
 }

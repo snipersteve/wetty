@@ -15,7 +15,6 @@ import {
   hasClipboardApi,
 } from './term/configuration/clipboard';
 import { debugLog } from './term/configuration/debug';
-import { summonKeyboard } from './term/configuration/touch';
 import { loadOptions } from './term/load';
 import type { Options } from './term/options';
 import type { Socket } from 'socket.io-client';
@@ -153,24 +152,10 @@ const pressRIGHT = press(cursorKey('\x1B[C', '\x1BOC'));
  * the 'active' class to the element with the ID 'onscreen-buttons'.
  */
 const toggleFunctions = (): void => {
-  if (coarsePointer) {
-    // Phones have the persistent key bar instead of the pop-up grid; the
-    // header icon shows/hides it (the bar's own ⌨ key summons the IME).
-    toggleKeybar();
-    return;
-  }
-  const element = document.querySelector(
-    'div#functions > div.onscreen-buttons',
-  );
-  if (element?.classList.contains('active')) {
-    element.classList.remove('active');
-  } else {
-    element?.classList.add('active');
-    document.getElementById('options')?.classList.remove('opened');
-    // On phones this button is a way to summon the soft keyboard (taps
-    // never do — the textarea sits at inputmode="none" until summoned).
-    if (window.wetty_term) summonKeyboard(window.wetty_term);
-  }
+  // Phones and desktop share the persistent key bar (the old pop-up grid is
+  // gone); the header icon shows/hides it.
+  toggleKeybar();
+  window.wetty_term?.focus();
 };
 
 declare global {

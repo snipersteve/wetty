@@ -9,6 +9,7 @@ import { verifyPrompt } from './wetty/disconnect/verify';
 import { FileDownloader } from './wetty/download';
 import { FlowControlClient } from './wetty/flowcontrol';
 import { mobileKeyboard } from './wetty/mobile';
+import { setupNotifications } from './wetty/notify';
 import { socket } from './wetty/socket';
 import { terminal, Term } from './wetty/term';
 import { bundledFonts } from './wetty/term/load';
@@ -160,3 +161,7 @@ const fontsReady: Promise<unknown> =
 void fontsReady.then(() => {
   socket.connect();
 });
+
+// Once per page, not per socket connect: the event stream is independent of
+// the terminal session.
+setupNotifications();

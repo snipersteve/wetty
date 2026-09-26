@@ -35,20 +35,9 @@ const render = (title: string, base: string): string => `<!doctype html>
     <div id="functions">
       <a class="toggler"
          href="#"
-         alt="Toggle keyboard"
+         alt="Toggle key bar" title="按键栏"
          onclick="window.toggleFunctions()"
        ><i class="fas fa-keyboard"></i></a>
-      <div class="onscreen-buttons">
-        <a href="#" onclick="window.pressESC()"><div>Esc</div></a>
-        <a href="#" onclick="window.pressTAB()"><div>Tab</div></a>
-        <a id="onscreen-ctrl" href="#" onclick="window.toggleCTRL()"><div>Ctrl</div></a>
-        <a href="#" onclick="window.pressLEFT()"><div>&#9664;</div></a>
-        <a href="#" onclick="window.pressUP()"><div>&#9650;</div></a>
-        <a href="#" onclick="window.pressRIGHT()"><div>&#9654;</div></a>
-        <a href="#" style="visibility:hidden"><div></div></a>
-        <a href="#" onclick="window.pressDOWN()"><div>&#9660;</div></a>
-        <a href="#" style="visibility:hidden"><div></div></a>
-      </div>
     </div>
     <div id="options">
       <a class="toggler"
