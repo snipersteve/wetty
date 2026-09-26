@@ -66,34 +66,40 @@ function armAudio(): void {
   window.addEventListener('keydown', unlock, true);
 }
 
-/** Two soft sine blips. */
-function chime(): void {
+/**
+ Two sine blips.
+ @returns false when the browser blocks audio (no user gesture yet since the
+   page loaded — autoplay policy), so the caller can say so
+ */
+function chime(): boolean {
   try {
     audio ??= new AudioContext();
     const ctx = audio;
     void ctx.resume();
-    [0, 0.16].forEach((offset, i) => {
+    if (ctx.state !== 'running') return false;
+    [0, 0.2].forEach((offset, i) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sine';
       osc.frequency.value = i === 0 ? 880 : 1175;
       const t = ctx.currentTime + offset;
       gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.exponentialRampToValueAtTime(0.12, t + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
+      gain.gain.exponentialRampToValueAtTime(0.35, t + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
       osc.connect(gain).connect(ctx.destination);
       osc.start(t);
-      osc.stop(t + 0.15);
+      osc.stop(t + 0.24);
     });
+    return true;
   } catch {
-    /* no audio */
+    return false;
   }
 }
 
 let toastBox: HTMLElement | null = null;
 
 /** Top-right card, stays ~6 s; click dismisses. */
-function pageToast(ev: NotifyEvent): void {
+function pageToast(ev: NotifyEvent, muted: boolean): void {
   if (toastBox === null) {
     toastBox = document.createElement('div');
     toastBox.style.cssText =
@@ -116,6 +122,12 @@ function pageToast(ev: NotifyEvent): void {
     body.style.opacity = '0.75';
     body.textContent = ev.body;
     card.appendChild(body);
+  }
+  if (muted) {
+    const hint = document.createElement('div');
+    hint.style.cssText = 'opacity:.6;font-size:12px;margin-top:2px;';
+    hint.textContent = '🔇 点一下页面即可启用提示音';
+    card.appendChild(hint);
   }
   const remove = (): void => {
     card.style.opacity = '0';
@@ -145,11 +157,10 @@ function onNotify(ev: NotifyEvent): void {
       window.focus();
       n.close();
     };
-    chime();
+    if (!chime()) pageToast(ev, true);
     return;
   }
-  pageToast(ev);
-  chime();
+  pageToast(ev, !chime());
 }
 
 export function setupNotifications(): void {
