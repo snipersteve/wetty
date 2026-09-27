@@ -2,8 +2,8 @@
  Persistent on-screen key bar, in the spirit of Termux's extra-keys row.
  Phones always show it; desktop browsers get only a floating upload
  button in the bottom-right corner. Two rows: terminal essentials (Esc, Tab, Ctrl+Enter, arrows,
- keyboard toggle) and multiplexer shortcuts (herdr's prefix chords, ^C,
- Enter, voice input, paste, upload). Sticky-Ctrl state lives in ctrl.ts.
+ /new, keyboard toggle) and multiplexer shortcuts (herdr's prefix chords, ^C,
+ /resume, Enter, voice input, paste, upload). Sticky-Ctrl state lives in ctrl.ts.
 
  Buttons never take focus (pointerdown is prevented), so tapping them does
  not dismiss the soft keyboard; arrows repeat on long press.
@@ -27,6 +27,8 @@ interface KeyDef {
   seq?: Seq;
   action?: 'ctrl' | 'keyboard' | 'paste' | 'upload' | 'voice';
   repeat?: boolean;
+  /** Follow seq with Enter after a beat (slash commands, see fire()). */
+  submit?: boolean;
   title?: string;
 }
 
@@ -45,6 +47,8 @@ const ROWS: KeyDef[][] = [
     // Enter). Sticky Ctrl (ctrl.ts) stays for the desktop grid and hardware
     // keyboards; it just has no button any more.
     { label: 'Ctrl⏎', seq: '\x1b[13;5u', title: 'Ctrl+Enter' },
+    // new / res share column 4 so they stack; equal flex keeps columns aligned.
+    { label: 'new', seq: '/new', submit: true, title: 'Agent: /new' },
     { label: '◀', seq: cursor('\x1b[D', '\x1bOD'), repeat: true },
     { label: '▲', seq: cursor('\x1b[A', '\x1bOA'), repeat: true },
     { label: '▼', seq: cursor('\x1b[B', '\x1bOB'), repeat: true },
@@ -55,6 +59,7 @@ const ROWS: KeyDef[][] = [
     { label: 'CtrlC', seq: '\x03', title: 'Ctrl+C' },
     { label: '◀Tab', seq: `${PREFIX}p`, title: 'herdr: previous tab' },
     { label: 'Tab▶', seq: `${PREFIX}n`, title: 'herdr: next tab' },
+    { label: 'res', seq: '/resume', submit: true, title: 'Agent: /resume' },
     { label: '+Tab', seq: `${PREFIX}c`, title: 'herdr: new tab' },
     { label: '粘贴', action: 'paste', title: '粘贴剪贴板' },
     { label: '上传', action: 'upload', title: '上传文件并粘贴路径' },
@@ -305,6 +310,13 @@ function makeButton(term: Term, def: KeyDef): HTMLButtonElement {
     const seq = typeof def.seq === 'function' ? def.seq(term) : def.seq;
     setCtrl(false);
     term.input(seq, true);
+    // Enter in the same write would read as a pasted newline; a beat later
+    // it lands as a keypress, after the slash-command menu has matched.
+    if (def.submit === true) {
+      window.setTimeout(() => {
+        term.input('\r', true);
+      }, 150);
+    }
   };
 
   let repeatTimer = 0;
