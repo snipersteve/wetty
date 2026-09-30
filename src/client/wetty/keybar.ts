@@ -1,9 +1,10 @@
 /**
  Persistent on-screen key bar, in the spirit of Termux's extra-keys row.
  Phones always show it; desktop browsers get only a floating upload
- button in the bottom-right corner. Two rows: terminal essentials (Esc, Tab, Ctrl+Enter, arrows,
- /new, keyboard toggle) and multiplexer shortcuts (herdr's prefix chords, ^C,
- /resume, Enter, voice input, paste, upload). Sticky-Ctrl state lives in ctrl.ts.
+ button in the bottom-right corner. Two rows of seven, columns aligned:
+ navigation (Esc, Tab, arrows, keyboard toggle) and actions (^C, Ctrl+Enter,
+ herdr new tab, paste, upload, voice input, Enter). Sticky-Ctrl state lives
+ in ctrl.ts.
 
  Buttons never take focus (pointerdown is prevented), so tapping them does
  not dismiss the soft keyboard; arrows repeat on long press.
@@ -41,7 +42,6 @@ const ROWS: KeyDef[][] = [
   [
     { label: 'Esc', seq: '\x1b' },
     { label: 'Tab', seq: '\t' },
-    { label: '+Tab', seq: `${PREFIX}c`, title: 'herdr: new tab' },
     { label: '◀', seq: cursor('\x1b[D', '\x1bOD'), repeat: true },
     { label: '▲', seq: cursor('\x1b[A', '\x1bOA'), repeat: true },
     { label: '▼', seq: cursor('\x1b[B', '\x1bOB'), repeat: true },
@@ -56,9 +56,7 @@ const ROWS: KeyDef[][] = [
     // Enter). Sticky Ctrl (ctrl.ts) stays for the desktop grid and hardware
     // keyboards; it just has no button any more.
     { label: 'Ctrl⏎', seq: '\x1b[13;5u', title: 'Ctrl+Enter' },
-    // Both rows hold eight keys, so equal flex keeps the columns aligned.
-    { label: '新建', seq: '/new', submit: true, title: 'Agent: /new' },
-    { label: '恢复', seq: '/resume', submit: true, title: 'Agent: /resume' },
+    { label: '+Tab', seq: `${PREFIX}c`, title: 'herdr: new tab' },
     { label: '粘贴', action: 'paste', title: '粘贴剪贴板' },
     { label: '上传', action: 'upload', title: '上传文件并粘贴路径' },
     {
