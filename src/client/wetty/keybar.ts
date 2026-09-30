@@ -41,14 +41,7 @@ const ROWS: KeyDef[][] = [
   [
     { label: 'Esc', seq: '\x1b' },
     { label: 'Tab', seq: '\t' },
-    // Ctrl+Enter as a Kitty keyboard report: herdr's client parses it and
-    // re-encodes for the pane (Claude Code enables the protocol, so it gets
-    // the same report and reads it as "send now"; legacy apps get a plain
-    // Enter). Sticky Ctrl (ctrl.ts) stays for the desktop grid and hardware
-    // keyboards; it just has no button any more.
-    { label: 'Ctrl⏎', seq: '\x1b[13;5u', title: 'Ctrl+Enter' },
-    // new / res share column 4 so they stack; equal flex keeps columns aligned.
-    { label: 'new', seq: '/new', submit: true, title: 'Agent: /new' },
+    { label: '+Tab', seq: `${PREFIX}c`, title: 'herdr: new tab' },
     { label: '◀', seq: cursor('\x1b[D', '\x1bOD'), repeat: true },
     { label: '▲', seq: cursor('\x1b[A', '\x1bOA'), repeat: true },
     { label: '▼', seq: cursor('\x1b[B', '\x1bOB'), repeat: true },
@@ -57,10 +50,15 @@ const ROWS: KeyDef[][] = [
   ],
   [
     { label: 'CtrlC', seq: '\x03', title: 'Ctrl+C' },
-    { label: '◀Tab', seq: `${PREFIX}p`, title: 'herdr: previous tab' },
-    { label: 'Tab▶', seq: `${PREFIX}n`, title: 'herdr: next tab' },
-    { label: 'res', seq: '/resume', submit: true, title: 'Agent: /resume' },
-    { label: '+Tab', seq: `${PREFIX}c`, title: 'herdr: new tab' },
+    // Ctrl+Enter as a Kitty keyboard report: herdr's client parses it and
+    // re-encodes for the pane (Claude Code enables the protocol, so it gets
+    // the same report and reads it as "send now"; legacy apps get a plain
+    // Enter). Sticky Ctrl (ctrl.ts) stays for the desktop grid and hardware
+    // keyboards; it just has no button any more.
+    { label: 'Ctrl⏎', seq: '\x1b[13;5u', title: 'Ctrl+Enter' },
+    // Both rows hold eight keys, so equal flex keeps the columns aligned.
+    { label: '新建', seq: '/new', submit: true, title: 'Agent: /new' },
+    { label: '恢复', seq: '/resume', submit: true, title: 'Agent: /resume' },
     { label: '粘贴', action: 'paste', title: '粘贴剪贴板' },
     { label: '上传', action: 'upload', title: '上传文件并粘贴路径' },
     {
