@@ -1,6 +1,7 @@
 import { applyCtrl } from '../../ctrl';
 import { copySelected } from './clipboard';
 import { debugLog } from './debug';
+import { isSwitcherSwipe, openMobileSwitcher } from './switcher';
 import type { Term } from '../../term';
 
 // Primary pointer is a finger (phones/tablets) — touch-screen laptops keep
@@ -300,7 +301,9 @@ export function setupTouch(term: Term): void {
   }
 
   let touchId: number | undefined;
+  let startX = 0;
   let startY = 0;
+  let horizontal = false;
   let startTime = 0;
   let lastY = 0;
   let scrolling = false;
@@ -444,6 +447,7 @@ export function setupTouch(term: Term): void {
       cancelLongPress();
       cancelTwoFinger();
       selecting = false;
+      horizontal = false;
       if (term.hasSelection()) term.clearSelection();
       if (e.touches.length !== 1) {
         touchId = undefined;
@@ -454,6 +458,7 @@ export function setupTouch(term: Term): void {
       }
       const touch = e.touches[0];
       touchId = touch.identifier;
+      startX = touch.clientX;
       startY = touch.clientY;
       lastY = touch.clientY;
       rawLastY = touch.clientY;
@@ -465,7 +470,9 @@ export function setupTouch(term: Term): void {
       scrolling = false;
       longPressTimer = window.setTimeout(() => {
         longPressTimer = 0;
-        if (touchId !== undefined && !scrolling) beginSelection();
+        if (touchId !== undefined && !scrolling && !horizontal) {
+          beginSelection();
+        }
       }, 500);
     },
     { passive: true },
@@ -495,8 +502,26 @@ export function setupTouch(term: Term): void {
         extendSelection(cellFromPoint(touch.clientX, touch.clientY));
         return;
       }
+      // Lock the first deliberate movement to an axis. Horizontal drags
+      // never become taps/long-presses or leak wheel reports into the app.
+      const dx = touch.clientX - startX;
+      const dy = touch.clientY - startY;
+      if (
+        !scrolling &&
+        !horizontal &&
+        Math.abs(dx) > 12 &&
+        Math.abs(dx) > Math.abs(dy) * 1.5
+      ) {
+        horizontal = true;
+        cancelLongPress();
+        lastTapAt = 0;
+      }
+      if (horizontal) {
+        e.preventDefault();
+        return;
+      }
       const cellHeight = screen.clientHeight / term.rows;
-      if (!scrolling && Math.abs(touch.clientY - startY) > cellHeight) {
+      if (!scrolling && Math.abs(dy) > cellHeight) {
         scrolling = true;
         cancelLongPress();
       }
@@ -542,6 +567,24 @@ export function setupTouch(term: Term): void {
           copySelected(text);
           showToast('已复制 · Copied');
         }
+        return;
+      }
+      if (horizontal) {
+        e.preventDefault();
+        lastTapAt = 0;
+        if (
+          touch &&
+          isSwitcherSwipe(
+            touch.clientX - startX,
+            touch.clientY - startY,
+            Date.now() - startTime,
+          )
+        ) {
+          if (openMobileSwitcher(term, screen)) {
+            debug('right-swipe: mobile switcher');
+          }
+        }
+        horizontal = false;
         return;
       }
       if (scrolling || touch === undefined || Date.now() - startTime >= 500) {
@@ -593,4 +636,15 @@ export function setupTouch(term: Term): void {
     },
     { passive: false },
   );
+
+  screen.addEventListener('touchcancel', () => {
+    touchId = undefined;
+    horizontal = false;
+    selecting = false;
+    scrolling = false;
+    lastTapAt = 0;
+    cancelLongPress();
+    cancelTwoFinger();
+    cancelMomentum();
+  });
 }
