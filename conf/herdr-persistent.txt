@@ -1,0 +1,48 @@
+WeTTY Herdr persistent client (2026-10-07)
+
+Deployment:
+  --command /Users/steve/Documents/git/wetty/scripts/herdr-persistent.sh
+  launchd: ~/Library/LaunchAgents/com.cokekitten.wetty.plist
+
+The browser still uses the normal WeTTY reconnect logic. WeTTY owns SSH to
+localhost, which owns a tmux attachment, NOT the Herdr UI process. The dedicated
+tmux server (socket name wetty-herdr) owns one Herdr client with its Remote SSH
+links. It survives browser/SSH disconnection and WeTTY service restarts.
+Desktop Herdr clients and the Herdr daemon are unchanged.
+
+All browser tabs share one Herdr UI. Most recently active client determines
+terminal size. This is a single-user deployment, not multi-user isolation.
+A full Mac restart or explicit Herdr UI exit creates a fresh UI on next visit.
+This does not prevent independent remote-network outages; Herdr handles those.
+No APK changes. Mobile gesture/clipboard/modified-key behavior needs manual QA.
+
+Ctrl+Enter requires both extended-keys=always and extended-keys-format=csi-u.
+IMPORTANT: changing the option on a running server does NOT initialize an
+existing pane's keyboard mode (tmux 3.6a screen_init sets this only at creation).
+Check: tmux -L wetty-herdr display-message -p -t wetty '#{pane_key_mode}'
+It must report Ext 1/Ext 2, not VT10x. For an existing Herdr pane, activate it
+without restart by writing ESC [ > 4 ; 2 m to its slave TTY as OUTPUT (pane_tty),
+not by sending it as keyboard input. This was applied live on 2026-10-07.
+New panes inherit the mode from conf/herdr-persistent.tmux.conf.
+Regression: node scripts/test-ctrl-enter.mjs (also covers option-only hot change).
+
+Options intentionally disable tmux prefix/status/mouse interception; Herdr owns
+the UI. DCS passthrough/OSC52/focus/truecolor remain enabled. No user tmux config
+is loaded. Existing user tmux servers are untouched.
+
+Diagnostics (do NOT kill-server in production):
+  tmux -L wetty-herdr list-clients
+  tmux -L wetty-herdr list-panes -a -F '#{pane_pid} #{pane_current_command}'
+
+Live isolated integration test (uses SSH to localhost and the real Herdr daemon):
+  node scripts/test-herdr-persistent.mjs
+Checks: disconnect for 20s, same Herdr + Remote SSH PIDs, reconnect, simultaneous
+clients, WeTTY restart. Test uses its own port 43920 and unique tmux socket.
+It only kills its own test tmux server during cleanup.
+
+Rollback:
+  Restore --command to /Users/steve/.local/bin/herdr in the launchd plist,
+  then bootout the WeTTY service, wait a few seconds, and bootstrap it again.
+  Original plist backup:
+  /Users/steve/Documents/obsidian/daily/20261007/wetty-persistent-backup/com.cokekitten.wetty.plist
+  Do not terminate the persistent Herdr UI until no browser needs it.

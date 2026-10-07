@@ -5,6 +5,8 @@
  */
 import type { Term } from './term';
 
+export const CTRL_ENTER = '\x1b[13;5u';
+
 let ctrlArmed = false;
 const listeners = new Set<(armed: boolean) => void>();
 
@@ -46,7 +48,8 @@ export function applyCtrl(ch: string): string | undefined {
 }
 
 /**
- Custom key handler for physical keyboards: while Ctrl is armed, the next
+ Custom key handler for physical keyboards: preserve Ctrl+Enter as CSI-u
+ (xterm's legacy path collapses it to CR). While Ctrl is armed, the next
  plain character is sent as its control code instead of reaching xterm.
  Soft keyboards (keyCode 229) never get here; the touch module handles
  them on the `input` event with applyCtrl().
@@ -54,8 +57,24 @@ export function applyCtrl(ch: string): string | undefined {
  @param e - the keyboard event xterm is about to process
  @returns false to swallow the event, true to let xterm handle it
  */
-export function ctrlKeyHandler(term: Term, e: KeyboardEvent): boolean {
-  if (e.type !== 'keydown' || !ctrlArmed) return true;
+export function ctrlKeyHandler(
+  term: Pick<Term, 'input'>,
+  e: KeyboardEvent,
+): boolean {
+  if (e.type !== 'keydown' || e.isComposing) return true;
+  if (
+    e.key === 'Enter' &&
+    (e.ctrlKey || ctrlArmed) &&
+    !e.altKey &&
+    !e.metaKey &&
+    !e.shiftKey
+  ) {
+    e.preventDefault();
+    setCtrl(false);
+    term.input(CTRL_ENTER, true);
+    return false;
+  }
+  if (!ctrlArmed) return true;
   if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) return true;
   const seq = applyCtrl(e.key);
   if (seq === undefined) return true;

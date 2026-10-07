@@ -9,7 +9,7 @@
  Buttons never take focus (pointerdown is prevented), so tapping them does
  not dismiss the soft keyboard; arrows repeat on long press.
  */
-import { onCtrlChange, setCtrl, toggleCtrl } from './ctrl';
+import { CTRL_ENTER, onCtrlChange, setCtrl, toggleCtrl } from './ctrl';
 import { showToast, summonKeyboard } from './term/configuration/touch';
 import type { Term } from './term';
 
@@ -55,7 +55,7 @@ const ROWS: KeyDef[][] = [
     // the same report and reads it as "send now"; legacy apps get a plain
     // Enter). Sticky Ctrl (ctrl.ts) stays for the desktop grid and hardware
     // keyboards; it just has no button any more.
-    { label: 'Ctrl⏎', seq: '\x1b[13;5u', title: 'Ctrl+Enter' },
+    { label: 'Ctrl⏎', seq: CTRL_ENTER, title: 'Ctrl+Enter' },
     { label: '+Tab', seq: `${PREFIX}c`, title: 'herdr: new tab' },
     { label: '粘贴', action: 'paste', title: '粘贴剪贴板' },
     { label: '上传', action: 'upload', title: '上传文件并粘贴路径' },

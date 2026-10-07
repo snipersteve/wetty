@@ -1,6 +1,7 @@
 import pty from 'node-pty';
 import { logger as getLogger } from '../shared/logger.js';
 import { tinybuffer, FlowControlServer } from './flowcontrol.js';
+import { TerminalInputWriter } from './input.js';
 import { xterm } from './shared/xterm.js';
 import { envVersionOr } from './spawn/env.js';
 import type SocketIO from 'socket.io';
@@ -14,11 +15,15 @@ export async function spawn(
   const cmd = version >= 9 ? ['-S', ...args] : args;
   logger.debug('Spawning PTY', { cmd });
   const term = pty.spawn('/usr/bin/env', cmd, xterm);
+  const inputWriter = new TerminalInputWriter((data) => {
+    term.write(data);
+  });
   const { pid } = term;
   const address = args[0] === 'ssh' ? args[1] : 'localhost';
   logger.info('Process Started on behalf of user', { pid, address });
   socket.emit('login');
   term.onExit(({ exitCode }) => {
+    inputWriter.dispose();
     logger.info('Process exited', { exitCode, pid });
     socket.emit('logout');
     socket
@@ -39,9 +44,10 @@ export async function spawn(
       term.resize(cols, rows);
     })
     .on('input', (input: string) => {
-      term.write(input);
+      inputWriter.input(input);
     })
     .on('disconnect', () => {
+      inputWriter.dispose();
       term.kill();
       logger.info('Process exited', { code: 0, pid });
     })
