@@ -2,7 +2,7 @@
  Persistent on-screen key bar, in the spirit of Termux's extra-keys row.
  Phones always show it; desktop browsers get only a floating upload
  button in the bottom-right corner. Two rows of seven, columns aligned:
- navigation (Esc, Tab, arrows, keyboard toggle) and actions (^C, Ctrl+Enter,
+ navigation (Esc, Tab, arrows, Shift+Tab) and actions (^C, Ctrl+Enter,
  herdr new tab, paste, upload, voice input, Enter). Sticky-Ctrl state lives
  in ctrl.ts.
 
@@ -10,7 +10,7 @@
  not dismiss the soft keyboard; arrows repeat on long press.
  */
 import { CTRL_ENTER, onCtrlChange, setCtrl, toggleCtrl } from './ctrl';
-import { showToast, summonKeyboard } from './term/configuration/touch';
+import { showToast } from './term/configuration/touch';
 import type { Term } from './term';
 
 const coarsePointer = window.matchMedia('(pointer: coarse)').matches;
@@ -26,7 +26,7 @@ type Seq = string | ((term: Term) => string);
 interface KeyDef {
   label: string;
   seq?: Seq;
-  action?: 'ctrl' | 'keyboard' | 'paste' | 'upload' | 'voice';
+  action?: 'ctrl' | 'paste' | 'upload' | 'voice';
   repeat?: boolean;
   /** Follow seq with Enter after a beat (slash commands, see fire()). */
   submit?: boolean;
@@ -42,11 +42,11 @@ const ROWS: KeyDef[][] = [
   [
     { label: 'Esc', seq: '\x1b' },
     { label: 'Tab', seq: '\t' },
+    { label: '⇧Tab', seq: '\x1b[Z', title: 'Shift+Tab' },
     { label: '◀', seq: cursor('\x1b[D', '\x1bOD'), repeat: true },
     { label: '▲', seq: cursor('\x1b[A', '\x1bOA'), repeat: true },
     { label: '▼', seq: cursor('\x1b[B', '\x1bOB'), repeat: true },
     { label: '▶', seq: cursor('\x1b[C', '\x1bOC'), repeat: true },
-    { label: '⌨', action: 'keyboard', title: '软键盘' },
   ],
   [
     { label: 'CtrlC', seq: '\x03', title: 'Ctrl+C' },
@@ -105,16 +105,6 @@ export function isKeybarVisible(): boolean {
 
 export function toggleKeybar(): void {
   applyVisibility(!isKeybarVisible());
-}
-
-function toggleSoftKeyboard(term: Term): void {
-  const { textarea } = term;
-  if (textarea && document.activeElement === textarea) {
-    // blur re-arms the dormant state (see touch.ts) and closes the IME.
-    textarea.blur();
-  } else {
-    summonKeyboard(term);
-  }
 }
 
 declare global {
@@ -284,10 +274,6 @@ function makeButton(term: Term, def: KeyDef): HTMLButtonElement {
   const fire = (): void => {
     if (def.action === 'ctrl') {
       toggleCtrl();
-      return;
-    }
-    if (def.action === 'keyboard') {
-      toggleSoftKeyboard(term);
       return;
     }
     if (def.action === 'paste') {
